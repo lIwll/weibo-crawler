@@ -430,8 +430,7 @@ class Weibo(object):
 
 def main():
     try:
-        user_id = 6207495145  # 可以改成任意合法的用户id
-        # user_id = 5136447007  # haoming
+        user_id = 5136447007  # 可以改成任意合法的用户id
         filter = 0  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
         pic_download = 1  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
         wb = Weibo(user_id, filter, pic_download)
