@@ -9,6 +9,7 @@ import os
 import random
 import sys
 import traceback
+from openpyxl import Workbook
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from time import sleep
@@ -366,34 +367,24 @@ class Weibo(object):
             result_headers = result_headers + result_headers2 + result_headers3
         return result_headers
 
-    def write_csv(self, wrote_count):
+    def write_xlsx(self, wrote_count,ws):
         """将爬到的信息写入csv文件"""
+
         write_info = self.get_write_info(wrote_count)
         result_headers = self.get_result_headers()
-        result_data = [w.values() for w in write_info]
-        if sys.version < '3':  # python2.x
-            with open(self.get_filepath('csv'), 'ab') as f:
-                f.write(codecs.BOM_UTF8)
-                writer = csv.writer(f)
-                if wrote_count == 0:
-                    writer.writerows([result_headers])
-                writer.writerows(result_data)
-        else:  # python3.x
-            with open(self.get_filepath('csv'),
-                      'a',
-                      encoding='utf-8-sig',
-                      newline='') as f:
-                writer = csv.writer(f)
-                if wrote_count == 0:
-                    writer.writerows([result_headers])
-                writer.writerows(result_data)
-        print(u'%d条微博写入csv文件完毕,保存路径:' % self.got_count)
-        print(self.get_filepath('csv'))
+        result_data = [list(w.values()) for w in write_info]
+        if wrote_count == 0:
+            ws.append(result_headers)
+        for i in range(len(result_data)):
+            ws.append(result_data[i])
+        
+        print(u'%d条微博写入excel文件完毕,保存路径:' % self.got_count)
+        print(self.get_filepath('xlsx'))
 
-    def write_file(self, wrote_count):
+    def write_file(self, wrote_count,ws):
         """将爬到的信息写入文件"""
         if self.got_count > wrote_count:
-            self.write_csv(wrote_count)
+            self.write_xlsx(wrote_count,ws)
 
     def get_pages(self):
         """获取全部微博"""
@@ -403,12 +394,14 @@ class Weibo(object):
         self.print_user_info()
         page1 = 0
         random_pages = random.randint(1, 5)
+        wb = Workbook()
+        ws = wb.active
         for page in tqdm(range(1, page_count + 1), desc=u"进度"):
             print(u'第%d页' % page)
             self.get_one_page(page)
 
             if page % 20 == 0:  # 每爬20页写入一次文件
-                self.write_file(wrote_count)
+                self.write_file(wrote_count,ws)
                 wrote_count = self.got_count
 
             # 通过加入随机等待避免被限制。爬虫速度过快容易被系统限制(一段时间后限
@@ -418,8 +411,8 @@ class Weibo(object):
                 sleep(random.randint(6, 10))
                 page1 = page
                 random_pages = random.randint(1, 5)
-
-        self.write_file(wrote_count)  # 将剩余不足20页的微博写入文件
+        self.write_file(wrote_count,ws)  # 将剩余不足20页的微博写入文件
+        wb.save(self.get_filepath('xlsx'))
         print(u'微博爬取完成，共爬取%d条微博' % self.got_count)
 
     def start(self):
@@ -437,8 +430,9 @@ class Weibo(object):
 
 def main():
     try:
-        user_id = 1669879400  # 可以改成任意合法的用户id
-        filter = 1  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
+        user_id = 6207495145  # 可以改成任意合法的用户id
+        # user_id = 5136447007  # haoming
+        filter = 0  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
         pic_download = 1  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
         wb = Weibo(user_id, filter, pic_download)
         wb.start()
